@@ -44,6 +44,28 @@ docs/                 Guía de arranque y kit de marca.
 8. **Lo legal manda.** Café tostado: sin permiso de importación, arancel 0 % (ABF, 0901.21: Free). **GST: el ATO clasifica el café en grano (verde, tostado o molido) como GST-free**, así que no debería cobrarse GST al importarlo ni al venderlo en bolsa. Viajeros: hasta 10 kg de café tostado por persona; la franquicia de AUD 900 no cubre mercancía comercial. Etiqueta en inglés con *Product of Colombia*, peso, lote, fecha y nombre del importador. Nada de café verde sin permiso. Detalles en la guía.
 9. **No toques el diseño del CRM sin motivo.** Si hace falta un campo nuevo, agrégalo en `schema.md`, en el JSON y en la app, en ese orden.
 
+## Cómo trabajamos (dos Claude, un proyecto)
+
+### Qué va en cada herramienta
+- **Asana** (proyecto "Doña Lu - Australia"): las **tareas** del equipo, con responsable y fecha. Si surge una tarea nueva, va a Asana, no al repo.
+- **Este repo**: los **prospectos** (`data/prospectos.json`), las plantillas, los documentos y el contexto. Las gestiones con cada negocio van en el `log` del prospecto, no en Asana.
+- **`bitacora.md`**: el traspaso entre sesiones y entre los dos Claude.
+
+### Quién hace qué
+- **Claude de David (DH):** base de prospectos (investigar, verificar, agregar con fuente), CRM, plantillas de mensajes, contenido y piezas de marca, coordinación con Doña Lú en Colombia.
+- **Claude de Juan Carlos (JC, también apoya a Katherine KV):** trámites en Australia (ABN, council, aduana, contador), tienda online y preventa, anuncios, LinkedIn, seguimiento de prospectos en Sídney, plan de negocio y Asana.
+- Si una tarea es del otro lado, no la hagas: déjala anotada en `bitacora.md` en "Para el otro Claude".
+
+### Rutina de cada sesión
+1. Al empezar: `git pull`, leer este archivo y las últimas entradas de `bitacora.md`.
+2. Trabajar solo en lo que te pidió tu persona y en los prospectos con tu `owner`.
+3. Al terminar: agregar una entrada **al principio** de `bitacora.md` (fecha, quién, qué se hizo, qué queda pendiente, qué le toca al otro Claude), hacer commit y `git push`.
+
+### Si hay conflicto
+- Si al hacer `git pull` hay cambios del otro en el mismo archivo, **intégralos, nunca los sobrescribas**. En `prospectos.json` se combinan los dos `log` por fecha y se conservan los cambios de estado de ambos.
+- Si no está claro cuál cambio es el bueno, no adivines: déjalo anotado en `bitacora.md` y pregúntale a tu persona.
+- Nunca uses `git push --force`.
+
 ## Cómo editar la base
 
 - Desde la app (GitHub Pages): los cambios quedan en el navegador y se exportan con **Exportar JSON**; ese archivo reemplaza `data/prospectos.json` y se hace commit.
