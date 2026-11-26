@@ -16,7 +16,7 @@ Arreglo de objetos. Un objeto por local o contacto. Campos:
 | `porque` | string | Una frase: por qué encaja con Doña Lú. |
 | `prioridad` | `A`/`B`/`C` | A = ir primero (tienda de retail, origen rotativo, dueños latinos, comunidad). |
 | `estado` | string | Ver pipeline. |
-| `owner` | `JC`/`DH`/`` | Quién lo trabaja. |
+| `owner` | `JC`/`DH`/`KV`/`` | Quién lo trabaja (KV = Katherine). |
 | `canal` | string | Canal preferido para el primer contacto: `visita`, `instagram`, `email`, `whatsapp`, `web`. |
 | `nextAction` | string | Próximo paso concreto. |
 | `nextDate` | string | `YYYY-MM-DD`. |

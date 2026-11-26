@@ -136,6 +136,26 @@ td .zn{font-size:12px;color:var(--tinta3)}
 .modal.open{display:grid}
 .modal .box{background:var(--papel);border:2px solid var(--tinta);width:min(620px,100%);max-height:92svh;overflow:auto;padding:18px;display:grid;gap:12px}
 .modal h2{font-size:22px}
+/* pipeline (kanban) */
+.kb{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(240px,1fr);gap:10px;overflow-x:auto;padding-bottom:8px;align-items:start}
+.kcol{background:rgba(247,242,231,.55);border:2px solid var(--tinta);display:flex;flex-direction:column;min-height:260px;transition:background .15s}
+.kcol.over{background:rgba(15,59,38,.16)}
+.kcol header{background:var(--verde);color:var(--papel);padding:9px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;position:sticky;top:0}
+.kcol header .lb{color:var(--kraft)}
+.kcol header b{font:400 22px/1 var(--sten)}
+.kl{padding:8px;display:grid;gap:8px;align-content:start;flex:1}
+.kc{background:var(--hueso);border:1.5px solid var(--tinta);padding:9px 10px 8px;cursor:grab;display:grid;gap:5px}
+.kc:hover{background:var(--papel)}
+.kc.drag{opacity:.4}
+.kc .nm{font:700 14.5px/1.2 var(--slab);color:var(--verde)}
+.kc .zn{font-size:12px;color:var(--tinta3)}
+.kc .na{font-size:12px;color:var(--tinta2)}
+.kc .ft{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.kc .mv{display:inline-flex;gap:4px}
+.kc .mv button{width:26px;height:24px;border:1.5px solid var(--line);font-size:13px;line-height:1}
+.kc .mv button:hover{border-color:var(--tinta)}
+.kc .mv button:disabled{opacity:.25;cursor:default}
+.kmore{font-size:12px;color:var(--tinta3);text-align:center;padding:4px}
 @media(max-width:700px){.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}.filters{grid-template-columns:1fr 1fr}.filters .f:first-child{grid-column:1/-1}}
 </style>
 </head>
@@ -162,12 +182,12 @@ td .zn{font-size:12px;color:var(--tinta3)}
     <div class="f"><label class="lb" for="fReg">Región</label><select id="fReg"><option value="">Todas</option></select></div>
     <div class="f"><label class="lb" for="fCat">Categoría</label><select id="fCat"><option value="">Todas</option></select></div>
     <div class="f"><label class="lb" for="fPri">Prioridad</label><select id="fPri"><option value="">Todas</option><option>A</option><option>B</option><option>C</option></select></div>
-    <div class="f"><label class="lb" for="fOwn">Dueño</label><select id="fOwn"><option value="">Todos</option><option value="JC">JC</option><option value="DH">DH</option><option value="_">Sin asignar</option></select></div>
+    <div class="f"><label class="lb" for="fOwn">Dueño</label><select id="fOwn"><option value="">Todos</option><option value="JC">JC</option><option value="DH">DH</option><option value="KV">KV</option><option value="_">Sin asignar</option></select></div>
     <div class="f"><label class="lb" for="fCan">Canal</label><select id="fCan"><option value="">Todos</option><option value="visita">Visita</option><option value="instagram">Instagram</option><option value="email">Correo</option><option value="whatsapp">WhatsApp</option><option value="web">Web / formulario</option><option value="_email">Tiene correo</option><option value="_tel">Tiene teléfono</option></select></div>
   </section>
   <section class="tools">
     <span class="n" id="count">—</span>
-    <div class="seg" role="group" aria-label="Vista"><button class="on" data-v="tabla">Tabla</button><button data-v="tarjetas">Tarjetas</button></div>
+    <div class="seg" role="group" aria-label="Vista"><button class="on" data-v="tabla">Tabla</button><button data-v="tarjetas">Tarjetas</button><button data-v="pipeline">Pipeline</button></div>
     <button class="btn s ghost" id="bClear">Limpiar filtros</button>
     <button class="btn s ghost" id="bCsv">Descargar CSV</button>
   </section>
@@ -181,6 +201,7 @@ td .zn{font-size:12px;color:var(--tinta3)}
     <div class="empty" id="empty" hidden>Nada con esos filtros.</div>
   </section>
   <section class="cards" id="vCards" hidden></section>
+  <section class="kb" id="vPipe" hidden aria-label="Pipeline por estado"></section>
 </main>
 
 <div class="sheet" id="sheet" aria-hidden="true">
@@ -244,10 +265,10 @@ function build(){
 }
 
 /* ——— filtrar y ordenar ——— */
-function filtered(){
+function filtered(allEstados){
   var q=$('#q').value.trim().toLowerCase(),reg=$('#fReg').value,cat=$('#fCat').value,pri=$('#fPri').value,own=$('#fOwn').value,can=$('#fCan').value;
   return data.filter(function(p){
-    if(filt.estado&&p.estado!==filt.estado)return false;
+    if(!allEstados&&filt.estado&&p.estado!==filt.estado)return false;
     if(reg&&(p.region||'')!==reg)return false;if(cat&&p.categoria!==cat)return false;if(pri&&p.prioridad!==pri)return false;
     if(own==='_'?p.owner:own&&p.owner!==own)return false;
     if(can==='_email'?!p.email:can==='_tel'?!(p.telefono||p.whatsapp):can&&p.canal!==can)return false;
@@ -274,7 +295,10 @@ function render(){
   $('#hoyl').innerHTML=due.slice(0,12).map(function(p){return '<li data-s="'+esc(p.slug)+'"><span class="d">'+esc(p.nextDate)+'</span><span class="n">'+esc(p.nombre)+'</span><span class="a">'+esc(p.nextAction||'')+'</span></li>'}).join('')+(due.length>12?'<li><span class="a">… y '+(due.length-12)+' más</span></li>':'');
   var list=filtered();$('#count').textContent=list.length+' de '+data.length+' prospectos';
   $$('th[data-k]').forEach(function(th){th.classList.toggle('sorted',th.dataset.k===sortK);th.classList.toggle('asc',th.dataset.k===sortK&&sortAsc)});
-  if(view==='tabla'){
+  $('#vPipe').hidden=view!=='pipeline';
+  if(view==='pipeline'){
+    $('#vTabla').hidden=true;$('#vCards').hidden=true;$('#empty').hidden=true;renderPipe(t);
+  }else if(view==='tabla'){
     $('#vTabla').hidden=false;$('#vCards').hidden=true;$('#empty').hidden=!!list.length;
     $('#rows').innerHTML=list.map(function(p){var late=p.nextDate&&p.nextDate<t&&p.estado!=='cliente'&&p.estado!=='descartado';return '<tr class="row'+(cur&&cur.slug===p.slug?' sel':'')+'" data-s="'+esc(p.slug)+'"><td><span class="pr '+esc(p.prioridad)+'">'+esc(p.prioridad)+'</span></td><td><span class="nm">'+esc(p.nombre)+'</span><span class="zn">'+esc(p.zona||'')+(p.porque?' · '+esc(p.porque):'')+'</span></td><td>'+esc(p.categoria)+'</td><td>'+esc(REGS[p.region||'']||p.region)+'</td><td><span class="est '+esc(p.estado)+'">'+esc(ELAB[p.estado]||p.estado)+'</span></td><td><span class="st" style="color:var(--azul)">'+esc(p.owner||'—')+'</span></td><td>'+chans(p)+'</td><td'+(late?' class="late"':'')+'>'+(p.nextDate?esc(p.nextDate)+' · ':'')+esc(p.nextAction||'')+'</td></tr>'}).join('');
   }else{
@@ -282,6 +306,27 @@ function render(){
     $('#vCards').innerHTML=list.map(function(p){return '<article class="card" data-s="'+esc(p.slug)+'"><div class="h"><div><div class="nm">'+esc(p.nombre)+'</div><div class="zn">'+esc(p.categoria)+' · '+esc(p.zona||REGS[p.region||''])+'</div></div><span class="pr '+esc(p.prioridad)+'">'+esc(p.prioridad)+'</span></div>'+(p.porque?'<p>'+esc(p.porque)+'</p>':'')+'<div class="ft"><span class="est '+esc(p.estado)+'">'+esc(ELAB[p.estado]||p.estado)+'</span>'+chans(p)+'</div></article>'}).join('')||'<div class="empty">Nada con esos filtros.</div>';
   }
 }
+
+/* ——— pipeline (kanban) ——— */
+var KMAX=60;
+function renderPipe(t){
+  var list=filtered(true),by={};ESTADOS.forEach(function(e){by[e]=[]});
+  list.forEach(function(p){(by[p.estado]||(by[p.estado]=[])).push(p)});
+  $('#vPipe').innerHTML=ESTADOS.map(function(e,i){var items=by[e]||[];
+    return '<section class="kcol" data-col="'+e+'"><header><span class="lb">'+ELAB[e]+'</span><b>'+items.length+'</b></header><div class="kl">'+
+    items.slice(0,KMAX).map(function(p){var late=p.nextDate&&p.nextDate<t&&e!=='cliente'&&e!=='descartado';
+      return '<article class="kc" draggable="true" data-s="'+esc(p.slug)+'"><div class="nm">'+esc(p.nombre)+'</div><div class="zn">'+esc(p.categoria)+' · '+esc(p.zona||REGS[p.region||''])+'</div>'+
+      (p.nextAction?'<div class="na'+(late?' late':'')+'">'+(p.nextDate?esc(p.nextDate)+' · ':'')+esc(p.nextAction)+'</div>':'')+
+      '<div class="ft"><span><span class="pr '+esc(p.prioridad)+'">'+esc(p.prioridad)+'</span> <span class="lb">'+esc(p.owner||'—')+'</span></span><span class="mv"><button type="button" data-mv="-1" aria-label="Mover a la etapa anterior"'+(i===0?' disabled':'')+'>‹</button><button type="button" data-mv="1" aria-label="Mover a la siguiente etapa"'+(i===ESTADOS.length-1?' disabled':'')+'>›</button></span></div></article>'}).join('')+
+    (items.length>KMAX?'<div class="kmore">+'+(items.length-KMAX)+' más · usa los filtros</div>':'')+'</div></section>'}).join('');
+}
+function moveTo(slug,e){var p=data.filter(function(x){return x.slug===slug})[0];if(!p||p.estado===e)return;var prev=p.estado;
+  var log=(p.log||[]).concat([{fecha:today(),quien:ME,nota:'Estado: '+ELAB[prev]+' → '+ELAB[e]}]);set(p,{estado:e,log:log});render();toast(p.nombre+' → '+ELAB[e])}
+$('#vPipe').addEventListener('click',function(e){var b=e.target.closest('[data-mv]');if(!b)return;e.stopPropagation();var c=b.closest('[data-s]'),p=data.filter(function(x){return x.slug===c.dataset.s})[0];var i=ESTADOS.indexOf(p.estado)+Number(b.dataset.mv);if(i>=0&&i<ESTADOS.length)moveTo(p.slug,ESTADOS[i])});
+$('#vPipe').addEventListener('dragstart',function(e){var c=e.target.closest('.kc');if(!c)return;e.dataTransfer.setData('text/plain',c.dataset.s);e.dataTransfer.effectAllowed='move';c.classList.add('drag')});
+$('#vPipe').addEventListener('dragend',function(e){var c=e.target.closest('.kc');if(c)c.classList.remove('drag');$$('.kcol.over').forEach(function(k){k.classList.remove('over')})});
+$('#vPipe').addEventListener('dragover',function(e){var col=e.target.closest('.kcol');if(!col)return;e.preventDefault();$$('.kcol.over').forEach(function(k){if(k!==col)k.classList.remove('over')});col.classList.add('over')});
+$('#vPipe').addEventListener('drop',function(e){var col=e.target.closest('.kcol');if(!col)return;e.preventDefault();col.classList.remove('over');var s=e.dataTransfer.getData('text/plain');if(s)moveTo(s,col.dataset.col)});
 
 /* ——— ficha ——— */
 var TPL={
@@ -300,13 +345,13 @@ function openSheet(slug){var p=data.filter(function(x){return x.slug===slug})[0]
   '<div class="sec"><h3>Gestión</h3><div class="grid2">'+
   '<div class="f"><label class="lb">Estado</label><select id="eEstado">'+opt(ESTADOS,p.estado,ELAB)+'</select></div>'+
   '<div class="f"><label class="lb">Prioridad</label><select id="ePri">'+opt(['A','B','C'],p.prioridad)+'</select></div>'+
-  '<div class="f"><label class="lb">Dueño</label><select id="eOwn">'+opt(['','JC','DH'],p.owner||'',{'':'Sin asignar'})+'</select></div>'+
+  '<div class="f"><label class="lb">Dueño</label><select id="eOwn">'+opt(['','JC','DH','KV'],p.owner||'',{'':'Sin asignar'})+'</select></div>'+
   '<div class="f"><label class="lb">Canal</label><select id="eCan">'+opt(['visita','instagram','email','whatsapp','web'],p.canal)+'</select></div>'+
   '<div class="f"><label class="lb">Próximo paso</label><input id="eNext" value="'+esc(p.nextAction||'')+'"></div>'+
   '<div class="f"><label class="lb">Fecha</label><input id="eDate" type="date" value="'+esc(p.nextDate||'')+'"></div>'+
   '</div></div>'+
   '<div class="sec"><h3>Bitácora</h3><ul class="log" id="eLog">'+(p.log||[]).slice().reverse().map(function(l){return '<li><span class="d">'+esc(l.fecha)+'</span><span class="w">'+esc(l.quien)+'</span><span>'+esc(l.nota)+'</span></li>'}).join('')+'</ul>'+
-  '<div class="f"><label class="lb">Nueva nota (quién: <select id="eWho" style="width:auto;padding:2px 24px 2px 6px"><option'+(ME==='JC'?' selected':'')+'>JC</option><option'+(ME==='DH'?' selected':'')+'>DH</option></select>)</label><textarea id="eNota" placeholder="Qué pasó: visita, respuesta, muestra entregada, pedido…"></textarea></div>'+
+  '<div class="f"><label class="lb">Nueva nota (quién: <select id="eWho" style="width:auto;padding:2px 24px 2px 6px"><option'+(ME==='JC'?' selected':'')+'>JC</option><option'+(ME==='DH'?' selected':'')+'>DH</option><option'+(ME==='KV'?' selected':'')+'>KV</option></select>)</label><textarea id="eNota" placeholder="Qué pasó: visita, respuesta, muestra entregada, pedido…"></textarea></div>'+
   '<div class="tools"><span class="n"></span><button class="btn s p" id="eAdd">Agregar al log</button></div></div>'+
   '<div class="sec"><h3>Plantillas</h3><div class="tpl"><button class="btn s" data-t="dm">Copiar DM Instagram</button><button class="btn s" data-t="email">Copiar correo</button><button class="btn s" data-t="wa">Copiar WhatsApp</button><button class="btn s" data-t="es">Copiar en español</button><button class="btn s" data-t="follow">Copiar seguimiento</button></div><p style="font-size:12.5px;color:var(--tinta3)">Edita el texto antes de enviarlo y registra el envío en la bitácora. Nunca precio en el primer mensaje.</p></div>'+
   '<div class="sec"><h3>Ficha</h3><p style="font-size:12.5px;color:var(--tinta3)">slug <code>'+esc(p.slug)+'</code>'+(over[p.slug]?' · tiene cambios locales sin exportar':'')+'</p><div class="tools"><span class="n"></span><button class="btn s ghost" id="eUndo"'+(over[p.slug]?'':' disabled')+'>Descartar cambios locales</button></div></div>';
